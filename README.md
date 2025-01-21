@@ -37,7 +37,7 @@ Python wrapper for the web services swagger api interface for momentum, and  fun
     momentum_user=<username>
     momentum_passwd=<password>
     momentum_verify=False
-    momentum_url="https://localhost/api/">
+    momentum_url="https://localhost/api/"
     ```
 
 ## Usage
