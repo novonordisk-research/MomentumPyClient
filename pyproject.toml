@@ -1,0 +1,56 @@
+[project]
+name = "MomentumPyClient"
+version = "0.0.1"
+authors = [
+  { name="Jesper Marino", email="jsqp@novonordisk.com" },
+]
+description = "Python package for connection to Web Services of Momentum Scheduler (Thermo Scientific)"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "requests",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "bumpver >= 2023.1129",
+    "pytest > 8.3.3",
+]
+streamlit = [
+    "streamlit",
+    "plotly",
+    "pandas",
+]
+
+[build-system]
+requires = ["setuptools>61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["momentumapi*"]
+
+
+[tool.bumpver]
+current_version = "0.0.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "bump version {old_version} -> {new_version}"
+tag_message = "v{new_version}"
+tag_scope = "default"
+commit = true
+tag = true
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+    'version = "{version}"',
+]
