@@ -23,12 +23,3 @@ if available_plates:
     st.write("Available plates:")
     st.write(pd.DataFrame(available_plates))
 stm.show_store(instrument)
-
-
-nests = stm.ws.get_nests()
-st.write(pd.DataFrame(nests))
-reformat = stm.ws.reformat_container_nests(nests)
-inv = pd.DataFrame(reformat)
-storename = "MicroSpin"
-inv = inv[inv["Name"] == storename]
-st.write(inv)
