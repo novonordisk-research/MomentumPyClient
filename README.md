@@ -1,10 +1,10 @@
 # MomentumPyClient
 
-This package makes it easy to connect to Web Services of the Momentum Scheduler from Thermo Scientific.
+This package simplifies the connection to the Web Services of the Momentum Scheduler from Thermo Scientific.
 
 ## Description
 
-Python wrapper for the web services swagger api interface for momentum, and  functions to make visualization in streamlit apps.
+MomentumPyClient is a Python wrapper for the web services Swagger API interface for Momentum. It includes UI functions to facilitate data visualization and control of Momentum directly from simple Streamlit apps.
 
 ## Visuals
 
@@ -87,37 +87,3 @@ If you encounter any issues or have questions, feel free to open an issue on Git
 ## Acknowledgements
 
 Special thanks to the contributors and the open-source community for their valuable input and support.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
