@@ -68,7 +68,7 @@ class StreamlitMomentum:
                 variables_dict = {}
             if st.button(f"Run process {process}"):
                 self.ws.run_process(
-                    "pythonTest", variables=variables_dict, iterations=iterations
+                    process=process, variables=variables_dict, iterations=iterations
                 )
 
     def show_store(self, storename, numbering_from_bottom=False):
