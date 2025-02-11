@@ -167,11 +167,15 @@ class Momentum:
                 timeout=self.timeout,
             )
         else:
+            # MODIFY HEADERS WITH
+            #    "Content-Type": "text/plain",
+            headers = self._headers.copy()
+            headers["Content-Type"] = "text/plain"
             resp = requests.post(
                 url,
                 data=data,
                 verify=self.verify,
-                headers=self._headers,
+                headers=headers,
                 timeout=self.timeout,
             )
         if resp.status_code == 200:
@@ -804,7 +808,11 @@ class Momentum:
 if __name__ == "__main__":
     print("Running as main")
     m = Momentum()
+    print(m.url)
     print(m.get_status())
+    m.run_process("test1")
+
+    exit()
     worklist = {
         "Name": "Work Unit 1",
         "auto_load": True,
