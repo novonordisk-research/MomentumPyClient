@@ -149,28 +149,43 @@ class Momentum:
         if resp.status_code == 401:
             # Retry once if to check if the token has expired
             self._token = self._get_token()
-            self._headers = {"Authorization": "Bearer {}".format(self._token)}
+            self._headers = {
+                "Authorization": "Bearer {}".format(self._token),
+                #                "Content-Type": "text/plain", # Does not work for all requests in 7.14
+            }
             resp = requests.get(
-                url, verify=self.verify, headers=self._headers, timeout=1
+                url, verify=self.verify, headers=self._headers, timeout=self.timeout
             )
             if resp.status_code == 200:
                 return resp.json()
         raise Exception(f"Error {resp.status_code} getting {url} ")
 
     def _send_post_request(self, url: str, data: dict | str = None) -> dict | None:
+        headers = {
+            "Authorization": "Bearer {}".format(self._token),
+            "Content-Type": "text/plain",  # Does not work for all requests in 7.14
+        }
         if isinstance(data, dict):
             resp = requests.post(
                 url,
                 json=data,
                 verify=self.verify,
-                headers=self._headers,
+                headers=self._headers,  # without Content-Type
+                timeout=self.timeout,
+            )
+        elif isinstance(data, list):
+            resp = requests.post(
+                url,
+                json=data,
+                verify=self.verify,
+                headers=headers,  # with Content-Type
                 timeout=self.timeout,
             )
         else:
             # MODIFY HEADERS WITH
             #    "Content-Type": "text/plain",
-            headers = self._headers.copy()
-            headers["Content-Type"] = "text/plain"
+            #   headers = self._headers.copy()
+            #  headers["Content-Type"] = "text/plain"
             resp = requests.post(
                 url,
                 data=data,
@@ -249,32 +264,23 @@ class Momentum:
         url = self.url + "momentum/containers"
         return self._send_get_request(url)
 
-    def add_inventyory_items(self, items: dict) -> list:
+    def add_inventyory_items(self, items: list[dict]) -> list:
         """
         Adds inventory items to the system.
 
         Example of items:
-        {
-            "TemplateIdentifier": "I_Plate_1",
-            "StartingNestName": "CybioStack:Stack 2",
-            "NumberOfItems": 2,
-            "ReserveNests": true,
-            "ReadBarcodeOnFirstRelocation": true,
-            "SkipNestsWithMismatchTemplate": true,
-            "StackNestAccessDirection": "Bottom",
-            "Barcodes" : [ "ABC123", "XYZ987" ]
-        }
+            [
+                {
+                    "Template": "T_Destination",
+                    "Nest": "Carousel:Column1_Hotel:Nest 4",
+                    "HasLid": true,
+                    "Barcode" : "ABC123"
+                }
+           ]
         """
-        url = self.url + "momentum/inventory/items"
-        resp = requests.post(
-            url, json=items, verify=self.verify, headers=self._headers, timeout=1
-        )
+        url = self.url + "momentum/inventory/bulkitems"
         # Here the return can be code #400 if the nest is occupied
-        if resp.status_code == 200 or resp.status_code == 400:
-            return resp.json()
-        raise Exception(
-            f"error adding inventory items {resp.status_code} with {url} and {items}"
-        )
+        return self._send_post_request(url, items)
 
     def delete_inventory_item(self, barcode: str = "", template: str = "*"):
         """

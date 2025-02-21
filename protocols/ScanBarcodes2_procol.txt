@@ -1,0 +1,39 @@
+profile [My System]
+{
+	// Devices and settings
+	devices
+	{
+		ContainerScanner ContainerScanner
+			(Active = 'Active', TakeOfflineDuringChangeout = 'Yes');
+	}
+
+	// Profile variables
+	variables
+	{
+	}
+
+	process ScanBarcodes2
+	{
+		// Process variables
+		variables
+		{
+			String Instrument
+				(PromptForValue = 'No', Persist = 'No', Shared = 'Batch', 
+				Capacity = '1');
+			String Nests
+				(DefaultValue = 'Column1_Hotel:Nest 1', PromptForValue = 'No', 
+				Persist = 'No', Shared = 'Batch', Capacity = '1');
+			String Template
+				(PromptForValue = 'No', Persist = 'No', Shared = 'Batch', 
+				Capacity = '1');
+		}
+
+		// Process steps
+		ContainerScanner [Scan Instrument]
+			(InstrumentName = $Instrument, TemplateName = $Template, 
+			Lidded = 'No', MaxDuration = '00:10:00', AutoCommit = 'Yes', 
+			Nests = $Nests, OutputHeader = 'No', Duration = '00:00:01', 
+			MinDelay = '00:00:00', MaxDelaySpecified = 'No', RequestedMaxDelay = '00:00:00', 
+			SpoilIfMaxDelayExceeded = 'No', Enabled = 'Yes', SkipOnError = 'No');
+	}
+}

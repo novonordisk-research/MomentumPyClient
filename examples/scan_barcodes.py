@@ -1,5 +1,5 @@
 import streamlit as st
-import MomentumPyClient.ui as stm  # Import the StreamlitMomentum class
+import MomentumPyClient.ui as stm
 
 st.header("Scan barcodes")
 
@@ -14,7 +14,6 @@ template_names = stm.get_template_names()
 c1, c2, c3 = st.columns(3)  # Create three columns
 # Find the nests for the selected device.
 stacks = stm.get_instrument_nests(instrument)
-st.write(stacks)
 stack = c1.selectbox("Stack / Column", list(stacks.keys()), key="stack")
 template = c2.selectbox("Template", template_names)
 lidded = c3.checkbox("With lid")
