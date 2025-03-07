@@ -16,9 +16,9 @@ MomentumPyClient is a Python wrapper for the web services Swagger API interface 
 
 ## Installation
 
-    ```sh
-    pip install MomentumPyClient[streamlit]
-    ```
+```sh
+pip install MomentumPyClient[streamlit]
+```
 
 ## Configuration
 
@@ -33,12 +33,12 @@ MomentumPyClient is a Python wrapper for the web services Swagger API interface 
 
 ## Usage
 
-    ```sh
-    from MomentumPyClient import Momentum
+```python
+from MomentumPyClient import Momentum
 
-    m = Momentum()
-    m.get_status()
-    ```
+m = Momentum()
+m.get_status()
+```
 
 ## Contributing
 
@@ -77,4 +77,4 @@ If you encounter any issues or have questions, feel free to open an issue on Git
 
 ## Acknowledgements
 
-Special thanks to the contributors and the open-source community for their valuable input and support.
+Special thanks to Søren Furbo, Erik Trygg and the open-source community for their valuable input and support.
