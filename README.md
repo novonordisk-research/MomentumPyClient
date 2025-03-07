@@ -8,7 +8,7 @@ MomentumPyClient is a Python wrapper for the web services Swagger API interface 
 
 ## Visuals
 
-![screenshot](screenshot.png)
+![screenshot](https://github.com/novonordisk-research/MomentumPyClient/blob/main/screenshot.png)
 
 ## Prerequisites
 
@@ -16,17 +16,8 @@ MomentumPyClient is a Python wrapper for the web services Swagger API interface 
 
 ## Installation
 
-1. Clone the repository:
     ```sh
-    git clone https://github.com/novonordisk-research/MomentumPyClient.git
-    ```
-2. Navigate to the project directory:
-    ```sh
-    cd MomentumPyClient
-    ```
-3. Install :
-    ```sh
-    pip install .[streamlit]
+    pip install MomentumPyClient[streamlit]
     ```
 
 ## Configuration
@@ -42,12 +33,12 @@ MomentumPyClient is a Python wrapper for the web services Swagger API interface 
 
 ## Usage
 
-1. Start the application:
-    ```sh 
-    cd examples/
-    streamlit run testing.py 
+    ```sh
+    from MomentumPyClient import Momentum
+
+    m = Momentum()
+    m.get_status()
     ```
-2. The application will connect to the Momentum Scheduler API and perform the necessary operations.
 
 ## Contributing
 
@@ -63,9 +54,9 @@ For any questions or support, please contact [jsqp@novonordisk.com](mailto:jsqp@
 
 ## 
 
-## Example
+## Streamlit example
 
-Here is a simple example of how to use this package:
+Here is a simple example of how to use this package with Streamlit:
 
 ```python
 import streamlit as st
