@@ -4,7 +4,7 @@ import MomentumPyClient.ui as stm
 import time
 
 st.set_page_config(layout="wide")
-st.write("hello world")
+st.write("Get containers with all attributes")
 
 # time this for loop
 start_time = time.time()
