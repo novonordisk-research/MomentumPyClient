@@ -38,7 +38,7 @@ class StreamlitMomentum:
             "Lavender",
             "Beige",
             "Maroon",
-            "Mint",
+            "mintcream",
             "Peach",
             "Navy",
             "Olive",
