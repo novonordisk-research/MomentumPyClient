@@ -39,7 +39,7 @@ class StreamlitMomentum:
             "Beige",
             "Maroon",
             "mintcream",
-            "Peach",
+            "peachpuff",
             "Navy",
             "Olive",
             "Coral",
