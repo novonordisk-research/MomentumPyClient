@@ -8,7 +8,7 @@ MomentumPyClient is a Python wrapper for the web services Swagger API interface 
 
 ## Visuals
 
-![screenshot](https://github.com/novonordisk-research/MomentumPyClient/blob/main/screenshot.png)
+![screenshot](https://github.com/novonordisk-research/MomentumPyClient/blob/main/screenshot.png?raw=true)
 
 ## Prerequisites
 
