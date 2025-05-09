@@ -104,10 +104,18 @@ class StreamlitMomentum:
                     process=process, variables=variables_dict, iterations=iterations
                 )
 
-    def show_store(self, storename, numbering_from_bottom=False):
-        nests = self.ws.get_nests()
-        if "Liconic" in storename:
-            numbering_from_bottom = True
+    # Cached get nests function to prevent multiple calls to the api
+    @st.cache_data(ttl=10)
+    def get_nests(self):
+        return self.ws.get_nests()
+
+    def show_store(self, storename, numbering_from_bottom: bool | None = None):
+        nests = self.get_nests()
+        if numbering_from_bottom is None:
+            if "Liconic" in storename:
+                numbering_from_bottom = True
+            else:
+                numbering_from_bottom = False
         inv = pd.DataFrame(self.ws.reformat_container_nests(nests))
 
         inv = inv[inv["Name"] == storename]
@@ -274,6 +282,7 @@ def get_instrument_nests(instrument):
     return _stm.ws.get_instrument_nests(instrument)
 
 
+# use a short caching time to prevent obsolete data
 @st.cache_data(ttl=600)
 def get_nests():
     return _stm.ws.get_nests()
