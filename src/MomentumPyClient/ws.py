@@ -308,7 +308,6 @@ class Momentum:
         """
         Async function to get the attributes of a container and add them to the container dictionary.
         """
-
         if "Inventory" in container and container["Inventory"] is not None:
             id = container["Inventory"]["ItemId"]
             attributes = await self.async_get_item_attribute(id)
