@@ -62,7 +62,7 @@ class StreamlitMomentum:
             self.color_provider = itertools.cycle(self.color_names)
             # This allows user to specify preferred colors for containers
             containers = self.ws.get_container_definitions()
-            # Create a dictioary to lookup the color
+            # Create a dictionary to lookup the color
         else:
             raise ValueError("color_names must be a list of color names")
         for container in containers:
