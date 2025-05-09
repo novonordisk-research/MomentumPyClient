@@ -2,13 +2,15 @@ import streamlit as st
 import MomentumPyClient.ui as stm
 
 st.header("Scan barcodes")
-# stm.set_template_colors(
-#     {
-#         "T_OrangeGTest": "orange",
-#         "T_384_Assay": "yellow",
-#         "T_SaltTitration_Source": "red",
-#     }
-# )
+stm.set_color_names(["orange", "yellow", "magenta", "blue", "green"])
+if True:
+    stm.set_template_colors(
+        {
+            "T_Destination": "red",
+            "T_384_Assay": "yellow",
+            "T_Plate1": "cyan",
+        }
+    )
 # allowed scan instruments
 instrument_names = ["Carousel", "Liconic_1", "Liconic_2", "Liconic_3"]
 instrument = st.selectbox("Instrument", instrument_names)
