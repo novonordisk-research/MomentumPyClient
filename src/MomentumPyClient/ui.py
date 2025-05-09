@@ -18,11 +18,7 @@ class StreamlitMomentum:
         if ws is None:
             ws = Momentum()
         self.ws = ws
-
-    def get_container_definitions(self):
-        self.containers = self.ws.get_container_definitions()
-        # Assign unique colors to each container definition
-        color_names = [
+        self.color_names = [
             "orange",
             "yellow",
             "red",
@@ -34,14 +30,43 @@ class StreamlitMomentum:
             "brown",
             "cyan",
             "gray",
+            "Cyan",
+            "Magenta",
+            "Teal",
+            "Pink",
+            "Lime",
+            "Lavender",
+            "Beige",
+            "Maroon",
+            "mintcream",
+            "peachpuff",
+            "Navy",
+            "Olive",
+            "Coral",
         ]
-        i = 0
-        for container in self.containers:
-            container["color"] = color_names[i]
-            i += 1
-            if i >= len(color_names):
-                i = 0
-        return self.containers
+        self.color_dict = {}
+        self.color_index = 0
+        containers = self.ws.get_container_definitions()
+        # Create a dictioary to lookup the color
+        for container in containers:
+            #            self.get_container_color(container["Name"])
+            self.get_container_color(container["InventoryTemplateName"])
+
+    def set_container_colors(self, color_dict: dict):
+        self.color_dict = color_dict
+
+    def get_container_color(self, container_name):
+        if container_name is None:
+            return "blue"
+        if container_name in self.color_dict:
+            return self.color_dict[container_name]
+        else:
+            color = self.color_names[self.color_index]
+            self.color_dict[container_name] = color
+            self.color_index += 1
+            if self.color_index >= len(self.color_names):
+                self.color_index = 0
+            return color
 
     def show_process_selector(self):
         with st.expander("Run a process with variables", expanded=True):
@@ -71,16 +96,18 @@ class StreamlitMomentum:
                     process=process, variables=variables_dict, iterations=iterations
                 )
 
-    def show_store(self, storename, numbering_from_bottom=False):
-        nests = self.ws.get_nests()
-        if "Liconic" in storename:
-            numbering_from_bottom = True
-        containers = self.get_container_definitions()
-        # Create a dictioary to lookup the color
-        colorDict = {}
-        for container in containers:
-            colorDict[container["Name"]] = container["color"]
-            colorDict[container["InventoryTemplateName"]] = container["color"]
+    # Cached get nests function to prevent multiple calls to the api
+    @st.cache_data(ttl=10)
+    def get_nests(self):
+        return self.ws.get_nests()
+
+    def show_store(self, storename, numbering_from_bottom: bool | None = None):
+        nests = self.get_nests()
+        if numbering_from_bottom is None:
+            if "Liconic" in storename:
+                numbering_from_bottom = True
+            else:
+                numbering_from_bottom = False
         inv = pd.DataFrame(self.ws.reformat_container_nests(nests))
 
         inv = inv[inv["Name"] == storename]
@@ -114,10 +141,7 @@ class StreamlitMomentum:
                 if lw:
                     barcode = n["Barcode"]
                     stack_pos -= stackHeight
-                    if lw in colorDict:
-                        color = colorDict[lw]
-                    else:
-                        color = "blue"
+                    color = self.get_container_color(lw)
                     fig.add_trace(
                         go.Bar(
                             x=[colname],
@@ -228,6 +252,11 @@ api = _stm.ws
 ws = _stm.ws
 show_store = _stm.show_store
 show_process_selector = _stm.show_process_selector
+template_colors = _stm.color_dict
+
+
+def set_template_colors(colors: dict):
+    _stm.set_container_colors(colors)
 
 
 # Cached versions of the api functions for use in streamlit
@@ -241,6 +270,7 @@ def get_instrument_nests(instrument):
     return _stm.ws.get_instrument_nests(instrument)
 
 
+# use a short caching time to prevent obsolete data
 @st.cache_data(ttl=600)
 def get_nests():
     return _stm.ws.get_nests()
