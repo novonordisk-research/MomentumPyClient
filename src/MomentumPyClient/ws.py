@@ -203,7 +203,7 @@ class Momentum:
 
     def _send_delete_request(self, url: str) -> dict | None:
         resp = requests.delete(
-            url, verify=self.verify, headers=self._headers, timeout=1
+            url, verify=self.verify, headers=self._headers, timeout=self.timeout
         )
         if resp.status_code == 204:
             return None
@@ -308,9 +308,12 @@ class Momentum:
         """
         Async function to get the attributes of a container and add them to the container dictionary.
         """
-        id = container["Inventory"]["ItemId"]
-        attributes = await self.async_get_item_attribute(id)
-        container["Attributes"] = attributes
+        if "Inventory" in container and container["Inventory"] is not None:
+            id = container["Inventory"]["ItemId"]
+            attributes = await self.async_get_item_attribute(id)
+            container["Attributes"] = attributes
+        else:
+            container["Attributes"] = []
         return container
 
     async def fetch_all_attributes(self, containers: Iterable[dict]):
@@ -733,7 +736,11 @@ class Momentum:
                 nest = int(m[2].replace("Nest ", ""))
             if n["Content"] is not None and "Barcode" in n["Content"]:
                 barcode = n["Content"]["Barcode"]
-                template = n["Content"]["ContainerName"].split(" (Id:")[0]
+                # remove the "*" infront of the template name
+                # TODO figure out what the "*" means
+                template = (
+                    n["Content"]["ContainerName"].split(" (Id:")[0].replace("*", "")
+                )
             if "Shovel" in m[1]:
                 name = name + "_Shovel"
                 continue

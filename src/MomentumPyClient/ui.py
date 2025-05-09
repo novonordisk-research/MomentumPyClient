@@ -1,7 +1,9 @@
+import itertools
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
+from typing import Iterable
 
 from .ws import Momentum
 
@@ -12,36 +14,67 @@ Since streamlit does a lot of page refreshes the api functions are cached with s
 """
 
 
-# @st.cache_resource()
 class StreamlitMomentum:
     def __init__(self, ws: Momentum = None):
         if ws is None:
             ws = Momentum()
         self.ws = ws
 
-    def get_container_definitions(self):
-        self.containers = self.ws.get_container_definitions()
-        # Assign unique colors to each container definition
-        color_names = [
-            "orange",
-            "yellow",
-            "red",
-            "gold",
-            "green",
-            "purple",
-            "black",
-            "blue",
-            "brown",
-            "cyan",
-            "gray",
-        ]
-        i = 0
-        for container in self.containers:
-            container["color"] = color_names[i]
-            i += 1
-            if i >= len(color_names):
-                i = 0
-        return self.containers
+        self._color_names = []
+        # Default colors for containers. These are the default colors in momentum.
+        self.set_color_names(
+            [
+                "orange",
+                "yellow",
+                "red",
+                "gold",
+                "green",
+                "purple",
+                "black",
+                "blue",
+                "brown",
+                "cyan",
+                "gray",
+                "Cyan",
+                "Magenta",
+                "Teal",
+                "Pink",
+                "Lime",
+                "Lavender",
+                "Beige",
+                "Maroon",
+                "mintcream",
+                "peachpuff",
+                "Navy",
+                "Olive",
+                "Coral",
+            ]
+        )
+
+    @property
+    def color_names(self):
+        return self._color_names
+
+    def set_color_names(self, value: Iterable[str]):
+        if isinstance(value, list):
+            self.color_dict = {None: "blue"}
+            self._color_names = value
+            self.color_provider = itertools.cycle(self.color_names)
+            # This allows user to specify preferred colors for containers
+            containers = self.ws.get_container_definitions()
+            # Create a dictionary to lookup the color
+        else:
+            raise ValueError("color_names must be a list of color names")
+        for container in containers:
+            self.get_container_color(container["InventoryTemplateName"])
+
+    def set_container_colors(self, color_dict: dict):
+        self.color_dict = color_dict
+
+    def get_container_color(self, container_name):
+        if container_name not in self.color_dict:
+            self.color_dict[container_name] = next(self.color_provider)
+        return self.color_dict[container_name]
 
     def show_process_selector(self):
         with st.expander("Run a process with variables", expanded=True):
@@ -75,12 +108,6 @@ class StreamlitMomentum:
         nests = self.ws.get_nests()
         if "Liconic" in storename:
             numbering_from_bottom = True
-        containers = self.get_container_definitions()
-        # Create a dictioary to lookup the color
-        colorDict = {}
-        for container in containers:
-            colorDict[container["Name"]] = container["color"]
-            colorDict[container["InventoryTemplateName"]] = container["color"]
         inv = pd.DataFrame(self.ws.reformat_container_nests(nests))
 
         inv = inv[inv["Name"] == storename]
@@ -114,10 +141,7 @@ class StreamlitMomentum:
                 if lw:
                     barcode = n["Barcode"]
                     stack_pos -= stackHeight
-                    if lw in colorDict:
-                        color = colorDict[lw]
-                    else:
-                        color = "blue"
+                    color = self.get_container_color(lw)
                     fig.add_trace(
                         go.Bar(
                             x=[colname],
@@ -228,6 +252,15 @@ api = _stm.ws
 ws = _stm.ws
 show_store = _stm.show_store
 show_process_selector = _stm.show_process_selector
+template_colors = _stm.color_dict
+
+
+def set_template_colors(colors: dict):
+    _stm.set_container_colors(colors)
+
+
+def set_color_names(color_names: list):
+    _stm.set_color_names(color_names)
 
 
 # Cached versions of the api functions for use in streamlit

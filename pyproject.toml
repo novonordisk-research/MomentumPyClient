@@ -1,6 +1,6 @@
 [project]
 name = "MomentumPyClient"
-version = "0.0.2"
+version = "0.0.4"
 authors = [
   { name="Jesper Marino", email="jsqp@novonordisk.com" },
   { name="Erik Trygg", email="etrg@novonordisk.com" },
