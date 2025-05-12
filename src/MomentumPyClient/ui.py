@@ -106,11 +106,14 @@ class StreamlitMomentum:
 
     # Cached get nests function to prevent multiple calls to the api
     @st.cache_data(ttl=10)
-    def get_nests(self):
+    def _cached_get_nests(self):
+        """This function is used to cache the nests in the api.
+        This is used to prevent multiple calls to the api,
+        for example when showing multiple hotels in a single webpage.."""
         return self.ws.get_nests()
 
     def show_store(self, storename, numbering_from_bottom: bool | None = None):
-        nests = self.get_nests()
+        nests = self._cached_get_nests()
         if numbering_from_bottom is None:
             if "Liconic" in storename:
                 numbering_from_bottom = True
