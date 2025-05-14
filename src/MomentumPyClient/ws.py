@@ -541,19 +541,18 @@ class Momentum:
         if isinstance(variables, dict):
             for variable in variables:
                 variable_node = ET.SubElement(batch, "variable", {"name": variable})
-                if isinstance(variables[variable], list):
+                # convert a ";" separated string to a list
+                value = variables[variable]
+                if isinstance(value, str) and ";" in value:
+                    value = value.split(";")
+                print(value)
+                if isinstance(value, list):
                     i = 1
-                    for value in variables[variable]:
+                    for v in value:
                         ET.SubElement(
                             variable_node, "value", {"iteration": str(i)}
-                        ).text = str(value)
+                        ).text = str(v)
                         i += 1
-                elif (
-                    isinstance(variables[variable], str) and ";" in variables[variable]
-                ):
-                    values = variables[variable].split(";")
-                    for value in values:
-                        ET.SubElement(variable_node, "value").text = str(value)
                 else:
                     variable_node.text = str(variables[variable])
         else:

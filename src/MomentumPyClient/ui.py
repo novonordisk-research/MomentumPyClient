@@ -68,7 +68,10 @@ class StreamlitMomentum:
         for container in containers:
             self.get_container_color(container["InventoryTemplateName"])
 
-    def set_container_colors(self, color_dict: dict):
+    def set_template_colors(self, color_dict: dict):
+        """
+        Set the colors for the container templates.
+        """
         self.color_dict = color_dict
 
     def get_container_color(self, container_name):
@@ -77,6 +80,9 @@ class StreamlitMomentum:
         return self.color_dict[container_name]
 
     def show_process_selector(self):
+        """
+        This function shows a process selector in the streamlit app.
+        """
         with st.expander("Run a process with variables", expanded=True):
             c1, c2 = st.columns(2)
             process = c1.selectbox("select a process", self.ws.get_process_names())
@@ -85,7 +91,6 @@ class StreamlitMomentum:
             if len(variables) > 0:
                 st.write(f"the process {process} has the following variables:")
                 variables_df = pd.DataFrame(variables)
-                st.write(variables_df)
                 variables_df = variables_df.rename(columns={"DefaultValue": "Value"})
                 variables_df = variables_df[
                     ["Name", "NativeType", "Value", "Comments"]
@@ -113,6 +118,11 @@ class StreamlitMomentum:
         return _self.ws.get_nests()
 
     def show_store(self, storename, numbering_from_bottom: bool | None = None):
+        """
+        This function shows the store in the streamlit app.
+        It shows the store in a plotly bar chart with the following information:
+        - The name of the container
+        - The position of the container"""
         nests = self._cached_get_nests()
         if numbering_from_bottom is None:
             if "Liconic" in storename:
@@ -264,14 +274,9 @@ ws = _stm.ws
 show_store = _stm.show_store
 show_process_selector = _stm.show_process_selector
 template_colors = _stm.color_dict
-
-
-def set_template_colors(colors: dict):
-    _stm.set_container_colors(colors)
-
-
-def set_color_names(color_names: list):
-    _stm.set_color_names(color_names)
+set_template_colors = _stm.set_template_colors
+set_color_names = _stm.set_color_names
+get_nests = _stm._cached_get_nests
 
 
 # Cached versions of the api functions for use in streamlit
@@ -285,15 +290,9 @@ def get_instrument_nests(instrument):
     return _stm.ws.get_instrument_nests(instrument)
 
 
-# use a short caching time to prevent obsolete data
-@st.cache_data(ttl=600)
-def get_nests():
-    return _stm.ws.get_nests()
-
-
 @st.cache_data(ttl=600)
 def get_container_definitions():
-    return _stm.get_container_definitions()
+    return _stm.ws.get_container_definitions()
 
 
 def run_process(
