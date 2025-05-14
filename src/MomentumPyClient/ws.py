@@ -161,6 +161,8 @@ class Momentum:
         raise Exception(f"Error {resp.status_code} getting {url} ")
 
     def _send_post_request(self, url: str, data: dict | str = None) -> dict | None:
+        # MODIFY HEADERS WITH
+        #    "Content-Type": "text/plain",
         headers = {
             "Authorization": "Bearer {}".format(self._token),
             "Content-Type": "text/plain",  # Does not work for all requests in 7.14
@@ -182,15 +184,11 @@ class Momentum:
                 timeout=self.timeout,
             )
         else:
-            # MODIFY HEADERS WITH
-            #    "Content-Type": "text/plain",
-            #   headers = self._headers.copy()
-            #  headers["Content-Type"] = "text/plain"
             resp = requests.post(
                 url,
                 data=data,
                 verify=self.verify,
-                headers=headers,
+                headers=headers,  # with Content-Type
                 timeout=self.timeout,
             )
         if resp.status_code == 200:
@@ -213,7 +211,24 @@ class Momentum:
 
     def _get_token(self) -> str:
         url = self.url + "token/accesstoken"
-        return self._send_post_request(url, self.login)["Token"]
+        # do not use the _send_post_request method here, because it will show username and password in the error message
+        resp = requests.post(
+            url,
+            json=self.login,
+            verify=self.verify,
+            headers=self._headers,  # without Content-Type
+            timeout=self.timeout,
+        )
+        if resp.status_code == 400 and "Invalid username or password" in resp.text:
+            # raise_for_status does not show user what the issue is.
+            raise requests.exceptions.HTTPError(
+                "Invalid username or password. Please check your credentials.",
+                response=resp,
+                request=resp.request,
+            )
+        else:
+            resp.raise_for_status()
+        return resp.json()["Token"]
 
     def stop(self):
         """
