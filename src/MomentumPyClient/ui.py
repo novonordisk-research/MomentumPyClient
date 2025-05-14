@@ -122,7 +122,16 @@ class StreamlitMomentum:
         This function shows the store in the streamlit app.
         It shows the store in a plotly bar chart with the following information:
         - The name of the container
-        - The position of the container"""
+        - The position of the container
+
+        Parameters
+        ----------
+        storename : str
+            The name of the store to show.
+
+        numbering_from_bottom : bool
+            If True, the slots are numbered from the bottom of the stack.
+        """
         nests = self.cached_get_nests()
         if numbering_from_bottom is None:
             if "Liconic" in storename:
