@@ -68,7 +68,10 @@ class StreamlitMomentum:
         for container in containers:
             self.get_container_color(container["InventoryTemplateName"])
 
-    def set_container_colors(self, color_dict: dict):
+    def set_template_colors(self, color_dict: dict):
+        """
+        Set the colors for the container templates.
+        """
         self.color_dict = color_dict
 
     def get_container_color(self, container_name):
@@ -77,6 +80,9 @@ class StreamlitMomentum:
         return self.color_dict[container_name]
 
     def show_process_selector(self):
+        """
+        This function shows a process selector in the streamlit app.
+        """
         with st.expander("Run a process with variables", expanded=True):
             c1, c2 = st.columns(2)
             process = c1.selectbox("select a process", self.ws.get_process_names())
@@ -85,7 +91,6 @@ class StreamlitMomentum:
             if len(variables) > 0:
                 st.write(f"the process {process} has the following variables:")
                 variables_df = pd.DataFrame(variables)
-                st.write(variables_df)
                 variables_df = variables_df.rename(columns={"DefaultValue": "Value"})
                 variables_df = variables_df[
                     ["Name", "NativeType", "Value", "Comments"]
@@ -104,10 +109,35 @@ class StreamlitMomentum:
                     process=process, variables=variables_dict, iterations=iterations
                 )
 
-    def show_store(self, storename, numbering_from_bottom=False):
-        nests = self.ws.get_nests()
-        if "Liconic" in storename:
-            numbering_from_bottom = True
+    # Cached get nests function to prevent multiple calls to the api
+    @st.cache_data(ttl=10)
+    def cached_get_nests(_self):
+        """This function is used to cache the nests in the api.
+        This is used to prevent multiple calls to the api,
+        for example when showing multiple hotels in a single webpage."""
+        return _self.ws.get_nests()
+
+    def show_store(self, storename, numbering_from_bottom: bool | None = None):
+        """
+        This function shows the store in the streamlit app.
+        It shows the store in a plotly bar chart with the following information:
+        - The name of the container
+        - The position of the container
+
+        Parameters
+        ----------
+        storename : str
+            The name of the store to show.
+
+        numbering_from_bottom : bool
+            If True, the slots are numbered from the bottom of the stack.
+        """
+        nests = self.cached_get_nests()
+        if numbering_from_bottom is None:
+            if "Liconic" in storename:
+                numbering_from_bottom = True
+            else:
+                numbering_from_bottom = False
         inv = pd.DataFrame(self.ws.reformat_container_nests(nests))
 
         inv = inv[inv["Name"] == storename]
@@ -253,35 +283,29 @@ ws = _stm.ws
 show_store = _stm.show_store
 show_process_selector = _stm.show_process_selector
 template_colors = _stm.color_dict
+set_template_colors = _stm.set_template_colors
+set_color_names = _stm.set_color_names
 
 
-def set_template_colors(colors: dict):
-    _stm.set_container_colors(colors)
-
-
-def set_color_names(color_names: list):
-    _stm.set_color_names(color_names)
+@st.cache_data(ttl=60)
+def get_nests():
+    return _stm.ws.get_nests(_stm)
 
 
 # Cached versions of the api functions for use in streamlit
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=60)
 def get_template_names():
     return _stm.ws.get_template_names()
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=60)
 def get_instrument_nests(instrument):
     return _stm.ws.get_instrument_nests(instrument)
 
 
-@st.cache_data(ttl=600)
-def get_nests():
-    return _stm.ws.get_nests()
-
-
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=60)
 def get_container_definitions():
-    return _stm.get_container_definitions()
+    return _stm.ws.get_container_definitions()
 
 
 def run_process(

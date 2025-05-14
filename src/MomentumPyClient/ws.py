@@ -161,6 +161,8 @@ class Momentum:
         raise Exception(f"Error {resp.status_code} getting {url} ")
 
     def _send_post_request(self, url: str, data: dict | str = None) -> dict | None:
+        # MODIFY HEADERS WITH
+        #    "Content-Type": "text/plain",
         headers = {
             "Authorization": "Bearer {}".format(self._token),
             "Content-Type": "text/plain",  # Does not work for all requests in 7.14
@@ -182,15 +184,11 @@ class Momentum:
                 timeout=self.timeout,
             )
         else:
-            # MODIFY HEADERS WITH
-            #    "Content-Type": "text/plain",
-            #   headers = self._headers.copy()
-            #  headers["Content-Type"] = "text/plain"
             resp = requests.post(
                 url,
                 data=data,
                 verify=self.verify,
-                headers=headers,
+                headers=headers,  # with Content-Type
                 timeout=self.timeout,
             )
         if resp.status_code == 200:
@@ -213,7 +211,24 @@ class Momentum:
 
     def _get_token(self) -> str:
         url = self.url + "token/accesstoken"
-        return self._send_post_request(url, self.login)["Token"]
+        # do not use the _send_post_request method here, because it will show username and password in the error message
+        resp = requests.post(
+            url,
+            json=self.login,
+            verify=self.verify,
+            headers=self._headers,  # without Content-Type
+            timeout=self.timeout,
+        )
+        if resp.status_code == 400 and "Invalid username or password" in resp.text:
+            # raise_for_status does not show user what the issue is.
+            raise requests.exceptions.HTTPError(
+                "Invalid username or password. Please check your credentials.",
+                response=resp,
+                request=resp.request,
+            )
+        else:
+            resp.raise_for_status()
+        return resp.json()["Token"]
 
     def stop(self):
         """
@@ -524,21 +539,21 @@ class Momentum:
             },
         )
         if isinstance(variables, dict):
+            # Variable is a dictionary with keys as variable names and values as variable values
+            # iteration based variables are supplied via lists or ";" separated strings
             for variable in variables:
                 variable_node = ET.SubElement(batch, "variable", {"name": variable})
-                if isinstance(variables[variable], list):
+                # convert a ";" separated string to a list
+                value = variables[variable]
+                if isinstance(value, str) and ";" in value:
+                    value = value.split(";")
+                if isinstance(value, list):
                     i = 1
-                    for value in variables[variable]:
+                    for v in value:
                         ET.SubElement(
                             variable_node, "value", {"iteration": str(i)}
-                        ).text = str(value)
+                        ).text = str(v)
                         i += 1
-                elif (
-                    isinstance(variables[variable], str) and ";" in variables[variable]
-                ):
-                    values = variables[variable].split(";")
-                    for value in values:
-                        ET.SubElement(variable_node, "value").text = str(value)
                 else:
                     variable_node.text = str(variables[variable])
         else:
