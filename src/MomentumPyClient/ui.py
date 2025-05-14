@@ -111,7 +111,7 @@ class StreamlitMomentum:
 
     # Cached get nests function to prevent multiple calls to the api
     @st.cache_data(ttl=10)
-    def _cached_get_nests(_self):
+    def cached_get_nests(_self):
         """This function is used to cache the nests in the api.
         This is used to prevent multiple calls to the api,
         for example when showing multiple hotels in a single webpage."""
@@ -123,7 +123,7 @@ class StreamlitMomentum:
         It shows the store in a plotly bar chart with the following information:
         - The name of the container
         - The position of the container"""
-        nests = self._cached_get_nests()
+        nests = self.cached_get_nests()
         if numbering_from_bottom is None:
             if "Liconic" in storename:
                 numbering_from_bottom = True
@@ -276,21 +276,25 @@ show_process_selector = _stm.show_process_selector
 template_colors = _stm.color_dict
 set_template_colors = _stm.set_template_colors
 set_color_names = _stm.set_color_names
-get_nests = _stm._cached_get_nests
+
+
+@st.cache_data(ttl=60)
+def get_nests():
+    return _stm.ws.get_nests(_stm)
 
 
 # Cached versions of the api functions for use in streamlit
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=60)
 def get_template_names():
     return _stm.ws.get_template_names()
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=60)
 def get_instrument_nests(instrument):
     return _stm.ws.get_instrument_nests(instrument)
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=60)
 def get_container_definitions():
     return _stm.ws.get_container_definitions()
 
