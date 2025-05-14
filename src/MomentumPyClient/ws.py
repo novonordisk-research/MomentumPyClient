@@ -539,13 +539,14 @@ class Momentum:
             },
         )
         if isinstance(variables, dict):
+            # Variable is a dictionary with keys as variable names and values as variable values
+            # iteration based variables are supplied via lists or ";" separated strings
             for variable in variables:
                 variable_node = ET.SubElement(batch, "variable", {"name": variable})
                 # convert a ";" separated string to a list
                 value = variables[variable]
                 if isinstance(value, str) and ";" in value:
                     value = value.split(";")
-                print(value)
                 if isinstance(value, list):
                     i = 1
                     for v in value:
