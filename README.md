@@ -22,14 +22,56 @@ pip install MomentumPyClient[streamlit]
 
 ## Configuration
 
-1. Create a `.env` file in the root directory.
-2. Add your API credentials to the `.env` file:
-    ```env
-    momentum_user=<username>
-    momentum_passwd=<password>
-    momentum_verify=False
-    momentum_url="https://localhost/api/"
-    ```
+You can configure MomentumPyClient in several ways, in order of priority:
+
+### 1. Direct parameters (highest priority)
+```python
+from MomentumPyClient import Momentum
+
+m = Momentum(
+    user_name="your_username",
+    password="your_password", 
+    url="https://your-server.com/api/",
+    verify=False
+)
+```
+
+### 2. .env file (medium priority)
+Create a `.env` file in the root directory:
+```env
+momentum_user=<username>
+momentum_passwd=<password>
+momentum_verify=False
+momentum_url="https://localhost/api/"
+```
+
+### 3. Environment variables (fallback)
+Set environment variables in your system or application:
+
+**Windows PowerShell:**
+```powershell
+$env:momentum_user="your_username"
+$env:momentum_passwd="your_password"
+$env:momentum_url="https://your-server.com/api/"
+$env:momentum_verify="False"
+```
+
+**Windows Command Prompt:**
+```cmd
+set momentum_user=your_username
+set momentum_passwd=your_password
+set momentum_url=https://your-server.com/api/
+set momentum_verify=False
+```
+
+**Python:**
+```python
+import os
+os.environ["momentum_user"] = "your_username"
+os.environ["momentum_passwd"] = "your_password"
+os.environ["momentum_url"] = "https://your-server.com/api/"
+os.environ["momentum_verify"] = "False"
+```
 
 ## Usage
 

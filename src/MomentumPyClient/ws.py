@@ -6,6 +6,7 @@ from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 from dotenv import dotenv_values
 from typing import Iterable
+import os
 
 import re
 
@@ -88,22 +89,26 @@ class Momentum:
 
     def __init__(
         self,
-        url: str | None = None,
-        user_name: str | None = None,
-        password: str | None = None,
+        url: str = "",
+        user_name: str  = "",
+        password: str = "",
         verify: str | bool | None = None,
         timeout=5,
     ) -> None:
         """ """
         secrets = dotenv_values(".env")
+        # If .env file doesn't exist or is empty, fall back to environment variables
+        if not secrets:
+            secrets = os.environ
+        
         self._headers = {}
-        if user_name is not None:
+        if user_name !="":
             self.user_name = user_name
         elif "momentum_user" in secrets:
             self.user_name = secrets["momentum_user"]
         else:
             raise Exception("No username specified")
-        if password is not None:
+        if password != "" :
             self.password = password
         elif "momentum_passwd" in secrets:
             self.password = secrets["momentum_passwd"]
@@ -119,20 +124,27 @@ class Momentum:
         if verify is not None:
             self.verify = verify
         elif "momentum_verify" in secrets:
-            if secrets["momentum_verify"].upper() == "FALSE":
-                self.verify = False
-            elif secrets["momentum_verify"].upper() == "TRUE":
-                self.verify = True
+            # If verify is a string, it can be "True", "False" or a path to a certificate file
+            verify_value = secrets["momentum_verify"]
+            if isinstance(verify_value, str):
+                if verify_value.upper() == "FALSE":
+                    self.verify = False
+                elif verify_value.upper() == "TRUE":
+                    self.verify = True
+                else:
+                    self.verify = verify_value
             else:
-                self.verify = secrets["momentum_verify"]
+                self.verify = verify_value
         else:
             self.verify = False
         if isinstance(self.verify, bool) and not self.verify:
             disable_warnings(InsecureRequestWarning)
-        if url is not None:
+        if url != "":
             self.url = url
         elif "momentum_url" in secrets:
-            self.url = secrets["momentum_url"]
+            self.url = str(secrets["momentum_url"])
+        else:
+            self.url = ""
         if self.url == "":
             raise Exception("No URL provided")
 
@@ -140,7 +152,7 @@ class Momentum:
         self._headers = {}
         self.timeout = timeout
 
-    def _send_get_request(self, url: str) -> dict:
+    def _send_get_request(self, url: str) -> dict | list:
         resp = requests.get(
             url, verify=self.verify, timeout=self.timeout, headers=self._headers
         )
@@ -159,8 +171,8 @@ class Momentum:
             if resp.status_code == 200:
                 return resp.json()
         raise Exception(f"Error {resp.status_code} getting {url} ")
-
-    def _send_post_request(self, url: str, data: dict | str = None) -> dict | None:
+    
+    def _send_post_request(self, url: str, data: dict | str | bytes | None = None) -> dict | list[dict] | None:
         # MODIFY HEADERS WITH
         #    "Content-Type": "text/plain",
         headers = {
@@ -251,35 +263,35 @@ class Momentum:
         url = self.url + "momentum/automationsystem/start?Mode=Simulate"
         return self._send_post_request(url)
 
-    def get_version(self) -> dict:
+    def get_version(self) -> dict | list:
         """
         Retrieves the version of the Momentum system.
         """
         url = self.url + "momentum/version"
         return self._send_get_request(url)
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict | list:
         """
         Retrieves the status of the automation system.
         """
         url = self.url + "momentum/automationsystem"
         return self._send_get_request(url)
 
-    def get_devices(self) -> list:
+    def get_devices(self) -> list |dict:
         """
         Retrieves the list of devices on the system.
         """
         url = self.url + "momentum/devices"
         return self._send_get_request(url)
 
-    def get_containers(self) -> list:
+    def get_containers(self) -> list[dict] |dict:
         """
         Retrieves a list of the containers on the system.
         """
         url = self.url + "momentum/containers"
         return self._send_get_request(url)
 
-    def add_inventyory_items(self, items: list[dict]) -> list:
+    def add_inventyory_items(self, items: list[dict]) -> list[dict] :
         """
         Adds inventory items to the system.
 
@@ -295,7 +307,7 @@ class Momentum:
         """
         url = self.url + "momentum/inventory/bulkitems"
         # Here the return can be code #400 if the nest is occupied
-        return self._send_post_request(url, items)
+        return self._send_post_request(url, items)  # type: ignore 
 
     def delete_inventory_item(self, barcode: str = "", template: str = "*"):
         """
@@ -306,14 +318,14 @@ class Momentum:
             url = url + f"&barcode={barcode}"
         return self._send_delete_request(url)
 
-    def get_item_attribute(self, itemId: int) -> list:
+    def get_item_attribute(self, itemId: int) -> list |dict:
         """
         Retrieves the attributes of a specific container on the system.
         """
         url = self.url + f"momentum/inventory/items/{itemId}/attributes"
         return self._send_get_request(url)
 
-    async def async_get_item_attribute(self, itemId: int) -> list:
+    async def async_get_item_attribute(self, itemId: int) -> list |dict:
         """
         Retrieves the attributes of a specific container on the system.
         """
@@ -340,6 +352,22 @@ class Momentum:
         )
         return containers
 
+    def _fetch_all_attributes_sync(self, containers: Iterable[dict]) -> list:
+        """
+        Synchronous fallback function to fetch all the attributes of a list of containers.
+        Used when asyncio.run() cannot be called due to existing event loop.
+        """
+        result = []
+        for container in containers:
+            if "Inventory" in container and container["Inventory"] is not None:
+                id = container["Inventory"]["ItemId"]
+                attributes = self.get_item_attribute(id)
+                container["Attributes"] = attributes
+            else:
+                container["Attributes"] = []
+            result.append(container)
+        return result
+
     def get_containers_with_attributes(
         self, filter: str = "", flatten: bool = False
     ) -> list:
@@ -356,7 +384,22 @@ class Momentum:
         containers = self.get_containers()
         if filter != "":
             containers = [c for c in containers if filter in c["Name"]]
-        containers_with_attributes = asyncio.run(self.fetch_all_attributes(containers))
+        
+        # Check if we're already in an event loop (like in Jupyter notebooks)
+        try:
+            asyncio.get_running_loop()
+            # If we're in a running loop, use nest_asyncio or run synchronously
+            try:
+                import nest_asyncio
+                nest_asyncio.apply()
+                containers_with_attributes = asyncio.run(self.fetch_all_attributes(containers))
+            except ImportError:
+                # Fall back to synchronous execution if nest_asyncio is not available
+                containers_with_attributes = self._fetch_all_attributes_sync(containers)
+        except RuntimeError:
+            # No running event loop, safe to use asyncio.run()
+            containers_with_attributes = asyncio.run(self.fetch_all_attributes(containers))
+        
         if flatten:
             for container in containers_with_attributes:
                 for attribute in container["Attributes"]:
@@ -364,44 +407,44 @@ class Momentum:
                 del container["Attributes"]
         return containers_with_attributes
 
-    def get_experiments(self) -> list:
+    def get_experiments(self) -> list[dict]:
         """
         Retrieves the list of experiments on the system.
         """
         url = self.url + "momentum/experiments"
-        return self._send_get_request(url)
+        return self._send_get_request(url) # type: ignore 
 
-    def get_container_definitions(self) -> list:
+    def get_container_definitions(self) -> list[dict]:
         """
         Retrieves the container definitions on the system.
         """
         url = self.url + "momentum/containers/definition"
-        return self._send_get_request(url)
+        return self._send_get_request(url) # type: ignore 
 
-    def get_nests(self) -> list:
+    def get_nests(self) -> list[dict]:
         """
         Retrieves the list of nests on the system.
         """
         url = self.url + "momentum/nests"
-        return self._send_get_request(url)
+        return self._send_get_request(url) # type: ignore 
 
-    def get_processes(self) -> list:
+    def get_processes(self) -> list [ dict]:
         """
         Retrieves the list of processes on the system.
         """
         url = self.url + "momentum/processes"
-        return self._send_get_request(url)
+        return self._send_get_request(url) # type: ignore 
 
-    def get_workqueue(self) -> list:
+    def get_workqueue(self) -> list[dict]:
         """
         Retrieves the work queue with batches.
         """
         url = self.url + "momentum/workqueue/workunits?batches=true"
-        return self._send_get_request(url)
+        return self._send_get_request(url) # type: ignore 
 
     def get_process_variables(
         self, process_name: str = "", process_id: int = 0
-    ) -> list:
+    ) -> list [dict]:
         """
         Retrieves the variables for a specific process.
         """
@@ -413,9 +456,9 @@ class Momentum:
                 if p["Name"] == process_name:
                     process_id = p["Id"]
         url = self.url + f"momentum/variables?process={process_id}"
-        return self._send_get_request(url)
+        return self._send_get_request(url) # type: ignore 
 
-    def create_worklist_xml(self, worklist: dict) -> str:
+    def create_worklist_xml(self, worklist: dict) -> bytes:
         """
         Creates an XML string from a worklist dictionary.
         """
@@ -479,7 +522,7 @@ class Momentum:
         xml = self.create_worklist_xml(worklist)
         if verbose:
             print(xml)
-        return self._send_post_request(url, xml)
+        return self._send_post_request(url, xml) # type: ignore 
 
     def run_process(
         self,
@@ -589,8 +632,9 @@ class Momentum:
 
     def run_experiment(
         self,
-        experiment: int,
+        experiment: str,
         variables: dict = {},
+        iterations: int = 1,
         workunit_name: str = "",
         batch_name: str = "Batch",
     ):
@@ -641,7 +685,7 @@ class Momentum:
         url = self.url + "momentum/worklist"
         return self._send_post_request(url, xmlstr)
 
-    def get_template_names(self) -> list:
+    def get_template_names(self) -> list[str]:
         """
         Retrieves the names of inventory templates.
         """
@@ -654,14 +698,14 @@ class Momentum:
             }
         )
 
-    def get_process_names(self) -> list:
+    def get_process_names(self) -> list[str]:
         """
         Retrieves the names of processes.
         """
         processes = self.get_processes()
         return [p["Name"] for p in processes]
 
-    def get_instrument_names(self) -> list:
+    def get_instrument_names(self) -> list[str]:
         """
         Retrieves the names of devices that are instruments (i.e. can hold plates).
         """
@@ -838,9 +882,12 @@ if __name__ == "__main__":
     m = Momentum()
     print(m.url)
     print(m.get_status())
-    m.run_process("test1")
-
+    print("running experiment E_process1")
+    m.run_experiment("E_Process1")
+    print("running process Process1")
+    m.run_process("process1")
     exit()
+
     worklist = {
         "Name": "Work Unit 1",
         "auto_load": True,

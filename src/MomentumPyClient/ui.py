@@ -15,7 +15,7 @@ Since streamlit does a lot of page refreshes the api functions are cached with s
 
 
 class StreamlitMomentum:
-    def __init__(self, ws: Momentum = None):
+    def __init__(self, ws: Momentum | None = None):
         if ws is None:
             ws = Momentum()
         self.ws = ws
@@ -289,12 +289,12 @@ set_color_names = _stm.set_color_names
 
 @st.cache_data(ttl=60)
 def get_nests():
-    return _stm.ws.get_nests(_stm)
+    return _stm.ws.get_nests()
 
 
 # Cached versions of the api functions for use in streamlit
 @st.cache_data(ttl=60)
-def get_template_names():
+def get_template_names() -> list[str]:
     return _stm.ws.get_template_names()
 
 

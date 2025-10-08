@@ -20,8 +20,8 @@ if c3.button("simulate"):
 m.show_process_selector()
 
 c1, c2 = st.columns(2)
-template = c1.selectbox("select a template ", m.get_template_names())
-instrument = c2.selectbox("select a hotel", m.ws.get_instrument_names())
+template = c2.selectbox("select a template ", m.get_template_names())
+instrument = c1.selectbox("select a hotel", m.ws.get_instrument_names())
 available_plates = m.ws.get_barcodes(template, instrument)
 if available_plates:
     st.write(pd.DataFrame(available_plates))
