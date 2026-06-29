@@ -1,7 +1,5 @@
 # MomentumPyClient Overview
 
-_Produced in Step 2. Reviewed by JSQP and a Biophysics group member before use._
-
 ## System overview
 
 MomentumPyClient is an in-house Python wrapper (version 0.0.5, MIT licence, hosted at github.com/novonordisk-research/MomentumPyClient) around the REST/Swagger API exposed by the Thermo Scientific Momentum lab automation scheduler. Momentum is a lab automation scheduler used to orchestrate robotic platforms, controlling instruments such as incubators, plate hotels, liquid handlers, and plate readers.

@@ -1,8 +1,5 @@
 # MomentumPyClient Improvements
 
-_Produced in Step 2. Reviewed by JSQP and a Biophysics group member before use._
-_Living document — update entries as items are addressed._
-
 ## Maintainability suggestions
 
 | # | Description | Impact | File / Area | Status |

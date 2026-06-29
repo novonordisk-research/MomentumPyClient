@@ -1,8 +1,5 @@
 # MomentumPyClient Security Issues
 
-_Produced in Step 2. Reviewed by JSQP and a Biophysics group member before use._
-_Living document — update entries as issues are resolved._
-
 ## Issues
 
 | # | Description | Severity | File / Line | Status |

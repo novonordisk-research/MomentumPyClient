@@ -1,8 +1,5 @@
 # MomentumPyClient Usage Reference
 
-_Produced in Step 2. Reviewed and corrected by JSQP before use as AI context._
-_Describes the MomentumPyClient package version 0.0.5._
-
 ---
 
 ## What MomentumPyClient does
