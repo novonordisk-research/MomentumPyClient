@@ -5,9 +5,42 @@ import requests
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 from dotenv import dotenv_values
-from typing import Iterable
+from fnmatch import fnmatchcase
+from typing import Iterable, Mapping
 
 import re
+
+# Whether nest 1 is at the bottom of a store, keyed by device name or glob pattern.
+# Momentum does not expose this, so it must be configured. Carousel: nest 1 at top;
+# Cytomat and Liconic: nest 1 at bottom.
+DEFAULT_NUMBERING_FROM_BOTTOM: dict[str, bool] = {
+    "Liconic*": True,
+    "Cytomat*": True,
+    "*Carousel": False,
+}
+
+
+def resolve_numbering_from_bottom(
+    store_name: str, setting: bool | Mapping[str, bool] | None = None
+) -> bool | None:
+    """
+    Return True if nest 1 is at the bottom of the store, False if at the top,
+    or None if `setting` has no entry for the store.
+
+    `setting` is a bool (used as is), a mapping of device name or glob pattern to bool
+    (an exact name wins over patterns, patterns are tried in insertion order), or None
+    to use DEFAULT_NUMBERING_FROM_BOTTOM.
+    """
+    if isinstance(setting, bool):
+        return setting
+    if setting is None:
+        setting = DEFAULT_NUMBERING_FROM_BOTTOM
+    if store_name in setting:
+        return setting[store_name]
+    for pattern, value in setting.items():
+        if fnmatchcase(store_name, pattern):
+            return value
+    return None
 
 
 class Momentum:
@@ -80,8 +113,9 @@ class Momentum:
             Retrieves the barcodes for a specific template and instrument.
         list_available_nests(location):
             Lists the empty nests in the specified location.
-        reformat_container_nests(nests):
-            Reformats the structure of the containers to a more useful format.
+        reformat_container_nests(nests, numbering_from_bottom=None):
+            Reformats the structure of the containers to a more useful format,
+            optionally ordering slots bottom to top for the given numbering direction.
     """
 
     timeout: int = 1
@@ -718,10 +752,38 @@ class Momentum:
 
         # Reformat the stucture of the containers to a more usefull format
 
-    def reformat_container_nests(self, nests: Iterable[dict]) -> list:
+    def reformat_container_nests(
+        self,
+        nests: Iterable[dict],
+        numbering_from_bottom: bool | Mapping[str, bool] | None = None,
+    ) -> list:
         """
         Reformats the structure of the containers to a more useful format.
+
+        If `numbering_from_bottom` is None the slots are returned in the order given
+        by Momentum. Otherwise it is a bool (applies to all devices) or a mapping of
+        device name/glob pattern to bool (see `resolve_numbering_from_bottom`), and the
+        slots of each stack are returned grouped and ordered bottom to top physically:
+        ascending `Nest` if nest 1 is at the bottom, descending if it is at the top.
+        Momentum stacks (`IsStack`) are always ascending. Devices the mapping does not
+        cover keep Momentum's order.
         """
+        slots = self._reformat_container_nests(nests)
+        if numbering_from_bottom is None:
+            return slots
+        groups: dict[tuple, list] = {}
+        for s in slots:
+            groups.setdefault((s["Name"], s["StackName"]), []).append(s)
+        ordered = []
+        for (name, _), group in groups.items():
+            from_bottom = resolve_numbering_from_bottom(name, numbering_from_bottom)
+            if from_bottom is not None:
+                ascending = from_bottom or group[0]["IsStack"]
+                group = sorted(group, key=lambda s: s["Nest"], reverse=not ascending)
+            ordered.extend(group)
+        return ordered
+
+    def _reformat_container_nests(self, nests: Iterable[dict]) -> list:
         slots = []
         for n in nests:
             if "Waste" in n["Name"]:

@@ -1,11 +1,16 @@
 import itertools
+import warnings
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
-from typing import Iterable
+from typing import Iterable, Mapping
 
-from .ws import Momentum
+from .ws import (
+    DEFAULT_NUMBERING_FROM_BOTTOM,
+    Momentum,
+    resolve_numbering_from_bottom,
+)
 
 """
 This module provides a class to interact with momentum api with streamlit.
@@ -15,10 +20,19 @@ Since streamlit does a lot of page refreshes the api functions are cached with s
 
 
 class StreamlitMomentum:
-    def __init__(self, ws: Momentum = None):
+    def __init__(
+        self,
+        ws: Momentum = None,
+        numbering_from_bottom: Mapping[str, bool] | None = None,
+    ):
         if ws is None:
             ws = Momentum()
         self.ws = ws
+        self.set_numbering_from_bottom(
+            DEFAULT_NUMBERING_FROM_BOTTOM
+            if numbering_from_bottom is None
+            else numbering_from_bottom
+        )
 
         self._color_names = []
         # Default colors for containers. These are the default colors in momentum.
@@ -67,6 +81,22 @@ class StreamlitMomentum:
             raise ValueError("color_names must be a list of color names")
         for container in containers:
             self.get_container_color(container["InventoryTemplateName"])
+
+    def set_numbering_from_bottom(self, mapping: Mapping[str, bool]):
+        """
+        Set, per store, whether nest 1 is at the bottom (True) or top (False).
+
+        Keys are device names or glob patterns such as "Cytomat*"; an exact name wins
+        over patterns. This replaces the current mapping (the defaults are
+        DEFAULT_NUMBERING_FROM_BOTTOM).
+        """
+        if not isinstance(mapping, Mapping) or not all(
+            isinstance(k, str) and isinstance(v, bool) for k, v in mapping.items()
+        ):
+            raise ValueError(
+                "numbering_from_bottom must be a mapping of store name to bool"
+            )
+        self.numbering_from_bottom = dict(mapping)
 
     def set_template_colors(self, color_dict: dict):
         """
@@ -129,16 +159,32 @@ class StreamlitMomentum:
         storename : str
             The name of the store to show.
 
-        numbering_from_bottom : bool
-            If True, the slots are numbered from the bottom of the stack.
+        numbering_from_bottom : bool | None
+            If True, nest 1 is at the bottom of the stack, if False at the top.
+            If None, the direction is looked up for the store in
+            `self.numbering_from_bottom` (see `set_numbering_from_bottom`); a store
+            without an entry is drawn top-down with a warning.
+            By default: Carousel is numbered from the top, Cytomat and Liconic
+            from the bottom.
         """
         nests = self.cached_get_nests()
         if numbering_from_bottom is None:
-            if "Liconic" in storename:
-                numbering_from_bottom = True
-            else:
+            numbering_from_bottom = resolve_numbering_from_bottom(
+                storename, self.numbering_from_bottom
+            )
+            if numbering_from_bottom is None:
+                warnings.warn(
+                    f"No nest numbering direction configured for store '{storename}'; "
+                    "drawing nest 1 at the top. Pass numbering_from_bottom or use "
+                    "set_numbering_from_bottom.",
+                    stacklevel=2,
+                )
                 numbering_from_bottom = False
-        inv = pd.DataFrame(self.ws.reformat_container_nests(nests))
+        inv = pd.DataFrame(
+            self.ws.reformat_container_nests(
+                nests, numbering_from_bottom=numbering_from_bottom
+            )
+        )
 
         inv = inv[inv["Name"] == storename]
         if inv.empty:
@@ -156,16 +202,12 @@ class StreamlitMomentum:
             slots = len(data)
 
             colname = data.StackName.values[0]
-            isStack = data.IsStack.values[0]
-            if isStack:
-                columnSort = True
-            else:
-                columnSort = numbering_from_bottom
             row = 1
             rackHeight = 300
             stack_pos = 0
             stackHeight = 14
-            for n in data.sort_values("Nest", ascending=columnSort).to_dict("records"):
+            # reformat_container_nests returns the slots bottom to top
+            for n in data.to_dict("records"):
                 lw = n["Template"]
                 position = n["Nest"]
                 if lw:
@@ -285,6 +327,7 @@ show_process_selector = _stm.show_process_selector
 template_colors = _stm.color_dict
 set_template_colors = _stm.set_template_colors
 set_color_names = _stm.set_color_names
+set_numbering_from_bottom = _stm.set_numbering_from_bottom
 
 
 @st.cache_data(ttl=60)
