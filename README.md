@@ -67,6 +67,26 @@ st.write(stm.ws.get_status())
 stm.show_store("Carousel")
 ```
 
+### Nest numbering direction
+
+Momentum does not say whether nest 1 of a store is at the top or the bottom, so this is configured per store. Defaults (glob patterns on the device name):
+
+| Store | Nest 1 |
+|---|---|
+| `*Carousel` | top |
+| `Cytomat*` | bottom |
+| `Liconic*` | bottom |
+
+Override with your own device names (exact names win over patterns), or per call:
+
+```python
+stm.set_numbering_from_bottom({"Dim4Carousel": False, "Cytomat10_*": True})
+stm.show_store("Cytomat10_C450")
+stm.show_store("MyStore", numbering_from_bottom=True)  # explicit argument wins
+```
+
+A store with no matching entry is drawn with nest 1 at the top and a warning is emitted. `Momentum.reformat_container_nests(nests, numbering_from_bottom=...)` takes the same setting (a bool or such a mapping) and then returns each stack's slots ordered bottom to top, matching the chart.
+
 ## Documentation
 
 For detailed API documentation, please refer to the official [Thermo Fisher Lab automation documentation](https://apps.thermofisher.com/apps/lahr/LA_Online_Help_Resource/en-us/Content/Topics/Software/Web%20Services/(General)/WBSV%20about.htm).
