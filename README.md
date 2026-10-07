@@ -67,6 +67,15 @@ st.write(stm.ws.get_status())
 stm.show_store("Carousel")
 ```
 
+Importing `MomentumPyClient.ui` makes no API calls; the client is created on first use. To use your own configured client instead of the `.env` defaults:
+
+```python
+from MomentumPyClient import Momentum
+import MomentumPyClient.ui as stm
+
+stm.set_client(Momentum(url="https://host/api/", user_name="user", password="pw"))
+```
+
 ## Documentation
 
 For detailed API documentation, please refer to the official [Thermo Fisher Lab automation documentation](https://apps.thermofisher.com/apps/lahr/LA_Online_Help_Resource/en-us/Content/Topics/Software/Web%20Services/(General)/WBSV%20about.htm).

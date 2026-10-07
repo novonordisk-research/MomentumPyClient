@@ -1,4 +1,5 @@
 import itertools
+import warnings
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -60,9 +61,15 @@ class StreamlitMomentum:
             self.color_dict = {None: "blue"}
             self._color_names = value
             self.color_provider = itertools.cycle(self.color_names)
-            # This allows user to specify preferred colors for containers
-            containers = self.ws.get_container_definitions()
-            # Create a dictionary to lookup the color
+            # Pre-assign colors in container definition order. If momentum is
+            # unreachable, colors are simply assigned on demand instead.
+            try:
+                containers = self.ws.get_container_definitions()
+            except Exception as e:
+                warnings.warn(
+                    f"Could not fetch container definitions, using on-demand colors: {e}"
+                )
+                containers = []
         else:
             raise ValueError("color_names must be a list of color names")
         for container in containers:
@@ -276,36 +283,67 @@ class StreamlitMomentum:
         return selected_list
 
 
-_stm = StreamlitMomentum()
+# The module level helpers share a lazily created StreamlitMomentum, so importing
+# this module never touches the network or requires credentials.
+_stm: StreamlitMomentum | None = None
 
-api = _stm.ws
-ws = _stm.ws
-show_store = _stm.show_store
-show_process_selector = _stm.show_process_selector
-template_colors = _stm.color_dict
-set_template_colors = _stm.set_template_colors
-set_color_names = _stm.set_color_names
+
+def _get_stm() -> StreamlitMomentum:
+    global _stm
+    if _stm is None:
+        _stm = StreamlitMomentum()
+    return _stm
+
+
+def set_client(ws: Momentum) -> None:
+    """Use an existing, configured Momentum client for the module level helpers."""
+    global _stm
+    _stm = StreamlitMomentum(ws)
+
+
+def __getattr__(name: str):
+    if name in ("ws", "api"):
+        return _get_stm().ws
+    if name == "template_colors":
+        return _get_stm().color_dict
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def show_store(storename, numbering_from_bottom: bool | None = None):
+    return _get_stm().show_store(storename, numbering_from_bottom)
+
+
+def show_process_selector():
+    return _get_stm().show_process_selector()
+
+
+def set_template_colors(color_dict: dict):
+    return _get_stm().set_template_colors(color_dict)
+
+
+def set_color_names(value: Iterable[str]):
+    return _get_stm().set_color_names(value)
 
 
 @st.cache_data(ttl=60)
 def get_nests():
-    return _stm.ws.get_nests(_stm)
+    return _get_stm().ws.get_nests()
 
 
 # Cached versions of the api functions for use in streamlit
 @st.cache_data(ttl=60)
 def get_template_names():
-    return _stm.ws.get_template_names()
+    return _get_stm().ws.get_template_names()
 
 
 @st.cache_data(ttl=60)
 def get_instrument_nests(instrument):
-    return _stm.ws.get_instrument_nests(instrument)
+    return _get_stm().ws.get_instrument_nests(instrument)
 
 
 @st.cache_data(ttl=60)
 def get_container_definitions():
-    return _stm.ws.get_container_definitions()
+    return _get_stm().ws.get_container_definitions()
 
 
 def run_process(
@@ -317,7 +355,7 @@ def run_process(
     minimum_delay=0,
     workunit_name: str | None = None,
 ):
-    return _stm.ws.run_process(
+    return _get_stm().ws.run_process(
         process=process,
         variables=variables,
         iterations=iterations,
