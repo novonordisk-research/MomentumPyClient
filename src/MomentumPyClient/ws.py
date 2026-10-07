@@ -148,11 +148,7 @@ class Momentum:
             return resp.json()
         if resp.status_code == 401:
             # Retry once if to check if the token has expired
-            self._token = self._get_token()
-            self._headers = {
-                "Authorization": "Bearer {}".format(self._token),
-                #                "Content-Type": "text/plain", # Does not work for all requests in 7.14
-            }
+            self._refresh_token()
             resp = requests.get(
                 url, verify=self.verify, headers=self._headers, timeout=self.timeout
             )
@@ -160,37 +156,48 @@ class Momentum:
                 return resp.json()
         raise Exception(f"Error {resp.status_code} getting {url} ")
 
-    def _send_post_request(self, url: str, data: dict | str = None) -> dict | None:
-        # MODIFY HEADERS WITH
-        #    "Content-Type": "text/plain",
+    def _refresh_token(self) -> None:
+        self._token = self._get_token()
+        self._headers = {
+            "Authorization": "Bearer {}".format(self._token),
+            #                "Content-Type": "text/plain", # Does not work for all requests in 7.14
+        }
+
+    def _post(self, url: str, data: dict | list | str | bytes | None) -> requests.Response:
         headers = {
             "Authorization": "Bearer {}".format(self._token),
             "Content-Type": "text/plain",  # Does not work for all requests in 7.14
         }
         if isinstance(data, dict):
-            resp = requests.post(
+            return requests.post(
                 url,
                 json=data,
                 verify=self.verify,
                 headers=self._headers,  # without Content-Type
                 timeout=self.timeout,
             )
-        elif isinstance(data, list):
-            resp = requests.post(
+        if isinstance(data, list):
+            return requests.post(
                 url,
                 json=data,
                 verify=self.verify,
                 headers=headers,  # with Content-Type
                 timeout=self.timeout,
             )
-        else:
-            resp = requests.post(
-                url,
-                data=data,
-                verify=self.verify,
-                headers=headers,  # with Content-Type
-                timeout=self.timeout,
-            )
+        return requests.post(
+            url,
+            data=data,
+            verify=self.verify,
+            headers=headers,  # with Content-Type
+            timeout=self.timeout,
+        )
+
+    def _send_post_request(self, url: str, data: dict | str = None) -> dict | None:
+        resp = self._post(url, data)
+        if resp.status_code == 401:
+            # No token yet, or it has expired: fetch a new one and retry once
+            self._refresh_token()
+            resp = self._post(url, data)
         if resp.status_code == 200:
             return resp.json()
         elif resp.status_code == 202:
@@ -203,6 +210,11 @@ class Momentum:
         resp = requests.delete(
             url, verify=self.verify, headers=self._headers, timeout=self.timeout
         )
+        if resp.status_code == 401:
+            self._refresh_token()
+            resp = requests.delete(
+                url, verify=self.verify, headers=self._headers, timeout=self.timeout
+            )
         if resp.status_code == 204:
             return None
         elif resp.status_code == 200:
